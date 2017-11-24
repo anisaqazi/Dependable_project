@@ -25,8 +25,8 @@ wire cin0;
 wire [WIDTH-1:0]ain;
 wire [WIDTH-1:0]bin;
 assign cin0 = C0 ? 1'b0 : 1'b1;
-assign ain = {(C2^A2}, (C2^A1), (C2^A0)};  
-assign ain = {(C1^B2}, (C1^B1), (C1^B0)};  
+assign ain = {(C2^A2), (C2^A1), (C2^A0)};  
+assign bin = {(C1^B2), (C1^B1), (C1^B0)};  
 
 rca ripple_carry0(.a	(ain),
 			      .b	(bin),
