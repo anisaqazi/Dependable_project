@@ -21,6 +21,8 @@ wire XC_rca0;
 wire XC_rca1;
 wire XC_rca2;
 /* add your design here */
+wire [WIDTH-1:0] sum_out;
+
 wire cin0;
 wire [WIDTH-1:0]ain;
 wire [WIDTH-1:0]bin;
@@ -28,38 +30,31 @@ assign cin0 = C0 ? 1'b0 : 1'b1;
 assign ain = {(C2^A2), (C2^A1), (C2^A0)};  
 assign bin = {(C1^B2), (C1^B1), (C1^B0)};  
 
-rca ripple_carry0(.a	(ain),
-			      .b	(bin),
-				  .cin	(cin0),
-				  .sum	(X_rca0),
-				  .cout	(XC_rca0)
-				  );
+//no tmr rca ripple_carry0(.a	(ain),
+//no tmr 	          .b	(bin),
+//no tmr 		  .cin	(cin0),
+//no tmr 		  .sum	(sum_out),
+//no tmr 		  .cout	(XC)
+//no tmr 		  );
+//no tmr 
 
 
-rca ripple_carry1(.a	(ain),
-			      .b	(bin),
-				  .cin	(cin0),
-				  .sum	(X_rca1),
-				  .cout	(XC_rca1)
-				  );
+rca_tmr rca_tmrX(	.ain(ain),
+			.bin(bin),
+			.cin0(cin0),
+			.sum(sum_out),
+			.cout(XC));
 
-rca ripple_carry2(.a	(ain),
-			      .b	(bin),
-				  .cin	(cin0),
-				  .sum	(X_rca2),
-				  .cout	(XC_rca2)
-				  );
 
-assign {X2, X1, X0} = ({XC_rca0,X_rca0} == {XC_rca1,X_rca1}) ? X_rca0 :
-					  ({XC_rca1,X_rca1} == {XC_rca2,X_rca2}) ? X_rca1 : X_rca2;
-assign XC = ({XC_rca0,X_rca0} == {XC_rca1,X_rca1}) ? XC_rca0 :
-					  ({XC_rca1,X_rca1} == {XC_rca2,X_rca2}) ? XC_rca1 : XC_rca2;
+
+assign {X2,X1,X0} = sum_out;
 
 assign XE0 = 1'b0;
-assign XE1 = ~(A0^A1^A2^B0^B1^B2^PAR) ? XE0 :              // Not odd parity
-			 (~( ~(C0&C1&C2) & (C0^C1^C2))) ? XE0  :       // Not one hot
+assign XE1 = ~(A0^A1^A2^B0^B1^B2^PAR)     ? XE0 :       // Not odd parity
+	     ~( ~(C0&C1&C2) & (C0^C1^C2)) ? XE0 :       // Not one hot
 			 ~XE0 ;
-					
+		
+			
 assign Y0 = 0;
 assign Y1 = 0;
 assign Y2 = 0;
@@ -82,6 +77,68 @@ fulladder fa1(a[1], b[1], cout0, sum[1], cout1);
 fulladder fa2(a[2], b[2], cout1, sum[2], cout);
 endmodule
 
+module rca_tmr(	ain,
+		bin,
+		cin0,
+		sum,
+		cout);
+
+parameter WIDTH = 3;
+input [2:0] ain;
+input [2:0] bin;
+input cin0;
+output [2:0] sum;
+output cout;
+
+wire [WIDTH-1:0]X_rca0;
+wire [WIDTH-1:0]X_rca1;
+wire [WIDTH-1:0]X_rca2;
+wire XC_rca0;
+wire XC_rca1;
+wire XC_rca2;
+
+ rca ripple_carry0(.a	(ain),
+ 			      .b	(bin),
+ 				  .cin	(cin0),
+ 				  .sum	(X_rca0),
+ 				  .cout	(XC_rca0)
+ 				  );
+ 
+ 
+ rca ripple_carry1(.a	(ain),
+ 			      .b	(bin),
+ 				  .cin	(cin0),
+ 				  .sum	(X_rca1),
+ 				  .cout	(XC_rca1)
+ 				  );
+ 
+ rca ripple_carry2(.a	(ain),
+ 			      .b	(bin),
+ 				  .cin	(cin0),
+ 				  .sum	(X_rca2),
+ 				  .cout	(XC_rca2)
+ 				  );
+ 
+ //assign sum = ({XC_rca0,X_rca0} == {XC_rca1,X_rca1}) ? X_rca0 :
+ //					  ({XC_rca1,X_rca1} == {XC_rca2,X_rca2}) ? X_rca1 : X_rca2;
+ //assign cout = ({XC_rca0,X_rca0} == {XC_rca1,X_rca1}) ? XC_rca0 :
+ //					  ({XC_rca1,X_rca1} == {XC_rca2,X_rca2}) ? XC_rca1 : XC_rca2;
+
+ assign sum = ({XC_rca0,X_rca0} == {XC_rca1,X_rca1}) ? X_rca0 :
+ 					  ({XC_rca1,X_rca1} == {XC_rca2,X_rca2}) ? X_rca1 : X_rca2;
+ assign cout = ({XC_rca0,X_rca0} == {XC_rca1,X_rca1}) ? XC_rca0 :
+ 					  ({XC_rca1,X_rca1} == {XC_rca2,X_rca2}) ? XC_rca1 : XC_rca2;
+
+ 
+ //assign neq01 = ({XC_rca0,X_rca0} == {XC_rca1,X_rca1})?1'b0 : 1'b1;
+ //assign neq12 = ({XC_rca1,X_rca1} == {XC_rca2,X_rca2})?1'b0 : 1'b1;
+ //assign neq02 = ({XC_rca0,X_rca0} == {XC_rca2,X_rca2})?1'b0 : 1'b1;
+
+ //assign error = neq01 & neq12 & neq01;
+
+endmodule
+
+
 module fulladder(a, b, cin, sum, cout);
 input a, b, cin;
 output sum, cout;
@@ -89,3 +146,24 @@ assign sum = a^b^cin;
 assign cout = (a&b) | (b&cin) | (cin&a);
 endmodule
 
+//module fulladder(a, b, cin, sum, cout);
+//input a, b, cin;
+//output sum, cout;
+//
+//wire sum_w,cout_w;
+//wire err_s, err_c;
+//assign sum_w = a^b^cin;
+//assign cout_w = (a&b) | (b&cin) | (cin&a);
+//
+//assign err_s = ((a^b) ^ (sum_w^cin));
+////assign err_c = ((cout_w ^ cin) ^ ((~a & ~b & cin) | (a & b & ~cin)));  //from paper
+//assign err_c = (cout_w ^ ((a&b) | (b&cin) | (cin&a)));
+//
+//
+//assign sum  = err_s ? ~sum_w  : sum_w;
+////assign sum  =  sum_w;
+//assign cout = err_c ? ~cout_w : cout_w;
+////assign cout = cout_w;
+//
+//endmodule
+//
