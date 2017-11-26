@@ -16,8 +16,11 @@ input A0,A1,A2,B0,B1,B2,PAR,C0,C1,C2;
 output X0,X1,X2,XC,XE0,XE1,Y0,Y1,Y2,YC,YE0,YE1;
 /* add your design here */
 wire [WIDTH-1:0] sum_outX;
-wire [WIDTH-1:0] sum_outX_check;
-wire XC_check;
+wire		 tmr_outXC;
+wire [WIDTH-1:0] sum_outXA_check;
+wire XCA_check;
+wire [WIDTH-1:0] sum_outXB_check;
+wire XCB_check;
 wire cin0X;
 wire [WIDTH-1:0]ainX;
 wire [WIDTH-1:0]binX;
@@ -28,9 +31,6 @@ wire YC_check;
 wire cin0Y;
 wire [WIDTH-1:0]ainY;
 wire [WIDTH-1:0]binY;
-
-wire err0_y;
-wire err1_y;
 
 assign cin0X = C0 ? 1'b0 : 1'b1;
 assign ainX = {(C2^A2), (C2^A1), (C2^A0)};  
@@ -45,24 +45,42 @@ rca_tmr rca_tmrX(	.ain(ainX),
 			.bin(binX),
 			.cin0(cin0X),
 			.sum(sum_outX),
-			.cout(XC));
+			.cout(tmr_outXC));
 
- rca ripple_carry_check_adderX(	.a	(ainX),
+ rca ripple_carry_check_adderXA(.a	(ainX),
  		   		.b	(binX),
  		   		.cin	(cin0X),
- 		   		.sum	(sum_outX_check),
- 		   		.cout	(XC_check)
+ 		   		.sum	(sum_outXA_check),
+ 		   		.cout	(XCA_check)
+ 		   		);
+ 
+ rca ripple_carry_check_adderXB(.a	(ainX),
+ 		   		.b	(binX),
+ 		   		.cin	(cin0X),
+ 		   		.sum	(sum_outXB_check),
+ 		   		.cout	(XCB_check)
  		   		);
  
 
+ assign {X2,X1,X0} =({tmr_outXC,sum_outX} == {XCA_check,sum_outXA_check}) 	? sum_outX :
+ 	            ({XCA_check,sum_outXA_check} == {XCB_check,sum_outXB_check})? sum_outXA_check : 
+										  sum_outXB_check;
 
-assign {X2,X1,X0} = sum_outX;
+ assign XC = ({tmr_outXC,sum_outX} == {XCA_check,sum_outXA_check}) 		? tmr_outXC :
+ 	      ({XCA_check,sum_outXA_check} == {XCB_check,sum_outXB_check}) 	? XCA_check : 
+										  XCB_check;
+
+
+
+//assign {X2,X1,X0} = sum_outX;
 
 assign XE0 = 1'b0;
 	
 assign XE1 = ~(A0^A1^A2^B0^B1^B2^PAR)     ? XE0 :       // Not odd parity
 	     ~( ~(C0&C1&C2) & (C0^C1^C2)) ? XE0 :       // Not one hot
-	     ({XC,sum_outX}!={XC_check,sum_outX_check})	  ? XE0 :	// error in TMR
+	     (({tmr_outXC,sum_outX} != {XCA_check,sum_outXA_check}) & 
+	      ({XCA_check,sum_outXA_check} != {XCB_check,sum_outXB_check}) &
+	      ({tmr_outXC,sum_outX} != {XCB_check,sum_outXB_check}))	  ? XE0 :	// error in TMR
 			 		   ~XE0 ;
 		
 //Logic for Y path			
@@ -72,42 +90,29 @@ assign XE1 = ~(A0^A1^A2^B0^B1^B2^PAR)     ? XE0 :       // Not odd parity
 //		  .sum	(sum_outY),
 //		  .cout	(YC)
 //		  );
-//rca_tmr rca_tmrY(	.ain(ainY),
-//			.bin(binY),
-//			.cin0(cin0Y),
-//			.sum(sum_outY),
-//			.cout(YC));
+rca_tmr rca_tmrY(	.ain(ainY),
+			.bin(binY),
+			.cin0(cin0Y),
+			.sum(sum_outY),
+			.cout(YC));
 
-csa_dmr csaY(	.ain(ainY),
-		.bin(binY),
-		.cin(cin0Y),
-		.sum(sum_outY),
-		.cout(YC),
-		.err0(err0_y),
-		.err1(err1_y)
-	);
 
-// rca ripple_carry_check_adderY(	.a	(ainY),
-// 		   		.b	(binY),
-// 		   		.cin	(cin0Y),
-// 		   		.sum	(sum_outY_check),
-// 		   		.cout	(YC_check)
-// 		   		);
-// 
-//
-//assign {Y2,Y1,Y0} = sum_outY;
-//
-//assign YE0 = 1'b0;
-//assign YE1 = ~(A0^A1^A2^B0^B1^B2^PAR)     ? YE0 :       // Not odd parity
-//	     ~( ~(C0&C1&C2) & (C0^C1^C2)) ? YE0 :       // Not one hot
-//	     ({YC,sum_outY}!={YC_check,sum_outY_check})	  ? YE0 :	// error in TMR
-//			 		   ~YE0 ;
-		
+ rca ripple_carry_check_adderY(	.a	(ainY),
+ 		   		.b	(binY),
+ 		   		.cin	(cin0Y),
+ 		   		.sum	(sum_outY_check),
+ 		   		.cout	(YC_check)
+ 		   		);
+ 
+
 assign {Y2,Y1,Y0} = sum_outY;
-assign YE0 = err0_y;
+
+assign YE0 = 1'b0;
+
 assign YE1 = ~(A0^A1^A2^B0^B1^B2^PAR)     ? YE0 :       // Not odd parity
 	     ~( ~(C0&C1&C2) & (C0^C1^C2)) ? YE0 :       // Not one hot
-			 		   err1_y ;
+	     ({YC,sum_outY}!={YC_check,sum_outY_check})	  ? YE0 :	// error in TMR
+			 		   ~YE0 ;
 		
 	
 
@@ -119,56 +124,6 @@ assign YE1 = ~(A0^A1^A2^B0^B1^B2^PAR)     ? YE0 :       // Not odd parity
 //assign YE1 = 0;
 //assign YC = 0;
 endmodule
-
-
-module csa_dmr( ain,
-		bin,
-		cin,
-		sum,
-		cout,
-		err0,
-		err1
-	);
-input [2:0]	ain;
-input [2:0]	bin;
-input		cin;
-output [2:0]	sum;
-output 		cout;
-output 		err0;
-output 		err1;
-
-wire [2:0] 	sum_outA;
-wire 		coutA;
-wire		err0_A;
-wire		err1_A;
-
-wire [2:0] 	sum_outB;
-wire 		coutB;
-wire		err0_B;
-wire		err1_B;
-
-csa csaA(	.ain(ain),
-		.bin(bin),
-		.cin(cin),
-		.sum(sum_outA),
-		.cout(coutA),
-		.err0(err0_A),
-		.err1(err1_A)
-	);
-
-csa csaB(	.ain(ain),
-		.bin(bin),
-		.cin(cin),
-		.sum(sum_outB),
-		.cout(coutB),
-		.err0(err0_B),
-		.err1(err1_B)
-	);
-
-assign {err1, err0,cout,sum} = (err0_A ^ err1_A) ? {err1_A,err0_A,coutA,sum_outA}:
-						   {err1_B,err0_B,coutB,sum_outB};	
-endmodule
-
 
 module rca(a,b,cin,sum,cout);
  	parameter WIDTH = 3;
@@ -201,90 +156,6 @@ module self_repair_rca(a,b,cin,sum,cout);
  	self_repair_fulladder fa1(a[1], b[1], cout0, sum[1], cout1);
  	self_repair_fulladder fa2(a[2], b[2], cout1, sum[2], cout);
 endmodule
-
-
-module csa(	ain,
-		bin,
-		cin,
-		sum,
-		cout,
-		err0,
-		err1
-	);
-input [2:0]	ain;
-input [2:0]	bin;
-input		cin;
-output [2:0]	sum;
-output 		cout;
-output 		err0;
-output 		err1;
-
-wire [2:0]	sum0;
-wire 		cout0;
-
-wire [2:0]	sum1;
-wire 		cout1;
-
-wire 		z;
-wire 		z_b;
-
-rca ripple_carry0(.a	(ain),
- 		   .b	(bin),
- 		   .cin	(1'b0),
- 		   .sum	(sum0),
- 		   .cout(cout0)
- 		   );
- 
- 
-rca ripple_carry1(.a	(ain),
- 		   .b	(bin),
- 		  .cin	(1'b1),
- 		  .sum	(sum1),
- 		  .cout	(cout1)
- 		  );
-
-two_rail_check rail0(	.x	(sum0[0]),
-		      	.x_b	(sum1[0]),
-		      	.y	(~(sum0[0]^sum1[1])),
-		      	.y_b	(sum0[1]),
-		      	.z	(z),
-		      	.z_b	(z_b)
-);
-
-two_rail_check rail1(	.x	(z),
-		      	.x_b	(z_b),
-		      	.y	(sum0[2]),
-		      	.y_b	(sum1[2]),
-		      	.z	(err0),
-		      	.z_b	(err1)
-);
-
-assign cout = cin ? cout1 : cout0;
-assign sum  = cin ? sum1  : sum0;
-
-endmodule
-
-module two_rail_check(x,
-		      x_b,
-		      y,
-		      y_b,
-		      z,
-		      z_b
-);
-
-input 	x;
-input 	x_b;
-input 	y;
-input 	y_b;
-output 	z;
-output 	z_b;
-
-
-assign z = (x_b & y_b) | (x & y);
-assign z_b = (x_b & y)   | (x & y_b);
-
-endmodule
-
 
 module rca_tmr(	ain,
 		bin,
