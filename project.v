@@ -22,15 +22,23 @@ wire cin0X;
 wire [WIDTH-1:0]ainX;
 wire [WIDTH-1:0]binX;
 
+wire [WIDTH-1:0] sumY;
+wire [WIDTH-1:0] sumY1;
+wire [WIDTH-1:0] sumY2;
 wire [WIDTH-1:0] sum_outY;
-wire [WIDTH-1:0] sum_outY_check;
+wire 		 YC_out;
+wire 		 YC0;
+wire 		 YC1;
+wire 		 YC2;
 wire YC_check;
 wire cin0Y;
+wire cin0Y_checker;
 wire [WIDTH-1:0]ainY;
 wire [WIDTH-1:0]binY;
 
+wire error_outY;
 wire err0_y;
-wire err1_y;
+//wire err1_y;
 
 assign cin0X = C0 ? 1'b0 : 1'b1;
 assign ainX = {(C2^A2), (C2^A1), (C2^A0)};  
@@ -39,6 +47,7 @@ assign binX = {(C1^B2), (C1^B1), (C1^B0)};
 assign cin0Y = C0 ? 1'b0 : 1'b1;
 assign ainY = {(C2^A2), (C2^A1), (C2^A0)};  
 assign binY = {(C1^B2), (C1^B1), (C1^B0)};  
+assign cin0Y_checker = C0 ? 1'b0 : 1'b1;
 
 // Logic for X path
 rca_tmr rca_tmrX(	.ain(ainX),
@@ -66,51 +75,64 @@ assign XE1 = ~(A0^A1^A2^B0^B1^B2^PAR)     ? XE0 :       // Not odd parity
 			 		   ~XE0 ;
 		
 //Logic for Y path			
-//self_repair_rca ripple_carry0(.a	(ainY),
-//	          .b	(binY),
-//		  .cin	(cin0Y),
-//		  .sum	(sum_outY),
-//		  .cout	(YC)
-//		  );
-//rca_tmr rca_tmrY(	.ain(ainY),
-//			.bin(binY),
-//			.cin0(cin0Y),
-//			.sum(sum_outY),
-//			.cout(YC));
-
-csa_dmr csaY(	.ain(ainY),
-		.bin(binY),
-		.cin(cin0Y),
-		.sum(sum_outY),
-		.cout(YC),
-		.err0(err0_y),
-		.err1(err1_y)
-	);
-
-// rca ripple_carry_check_adderY(	.a	(ainY),
-// 		   		.b	(binY),
-// 		   		.cin	(cin0Y),
-// 		   		.sum	(sum_outY_check),
-// 		   		.cout	(YC_check)
-// 		   		);
-// 
-//
+		
 //assign {Y2,Y1,Y0} = sum_outY;
-//
-//assign YE0 = 1'b0;
+//assign YE0 = err0_y;
 //assign YE1 = ~(A0^A1^A2^B0^B1^B2^PAR)     ? YE0 :       // Not odd parity
 //	     ~( ~(C0&C1&C2) & (C0^C1^C2)) ? YE0 :       // Not one hot
-//	     ({YC,sum_outY}!={YC_check,sum_outY_check})	  ? YE0 :	// error in TMR
-//			 		   ~YE0 ;
+//			 		   err1_y ;
 		
-assign {Y2,Y1,Y0} = sum_outY;
-assign YE0 = err0_y;
+rca rcaY0(	.a	(ainY),
+    		.b	(binY),
+    		.cin	(cin0Y),
+    		.sum	(sum_outY),
+    		.cout	(YC_out)
+    		);
+	
+residue_check checkY(	.a	(ainY),
+			.b	(binY),
+			.cin	(cin0Y_checker),
+			.sum_in	(sum_outY),
+			.cout_in(YC_out),
+			.sum_out(sumY),
+			.cout	(YC0),
+			.error_flag(err0_y)	//can dual rail be done?
+			);
+
+rca rcaY1(	.a	(ainY),
+    		.b	(binY),
+    		.cin	(cin0Y),
+    		.sum	(sumY1),
+    		.cout	(YC1)
+    		);
+	
+rca rcaY2(	.a	(ainY),
+    		.b	(binY),
+    		.cin	(cin0Y),
+    		.sum	(sumY2),
+    		.cout	(YC2)
+    		);
+	
+assign {Y2,Y1,Y0} = ({err0_y,YC0,sum_outY} == {1'b0,YC1,sumY1}) ? sum_outY :
+ 					  ({YC1,sumY1} == {YC2,sumY2}) ? sumY1 : sumY2;
+assign {error_outY,YC} = ({err0_y,YC0,sum_outY} == {1'b0,YC1,sumY1}) ? {1'b0,YC0} :
+ 					  ({YC1,sumY1} == {YC2,sumY2}) ? {1'b0,YC1} : 
+ 					  ({YC2,sumY2} == {err0_y,YC0,sum_outY}) ? {1'b0,YC2} : {1'b1,YC2};
+
+//assign {Y2,Y1,Y0} = sumY;
+assign YE0 = 1'b1;
 assign YE1 = ~(A0^A1^A2^B0^B1^B2^PAR)     ? YE0 :       // Not odd parity
 	     ~( ~(C0&C1&C2) & (C0^C1^C2)) ? YE0 :       // Not one hot
-			 		   err1_y ;
-		
-	
+	     error_outY			  ? YE0 :
+					   ~YE0 ;
 
+
+//assign X0 = 0;
+//assign X1 = 0;
+//assign X2 = 0;
+//assign XE0 = 0;
+//assign XE1 = 0;
+//assign XC = 0;
 
 //assign Y0 = 0;
 //assign Y1 = 0;
@@ -120,6 +142,51 @@ assign YE1 = ~(A0^A1^A2^B0^B1^B2^PAR)     ? YE0 :       // Not odd parity
 //assign YC = 0;
 endmodule
 
+module residue_check(	a,
+			b,
+			cin,
+			sum_in,
+			cout_in,
+			sum_out,
+			cout,
+			error_flag	//can dual rail be done?
+			);
+
+input [2:0]	a;
+input [2:0]	b;
+input 		cin;
+input [2:0]	sum_in;
+input 		cout_in;
+output [2:0]	sum_out;
+output		cout;
+output		error_flag;
+
+wire [2:0] int_sum;
+wire [2:0] sum_b;
+wire [2:0] int_carry;
+wire cout_b;
+wire [3:0] error;
+
+    fulladder fa0(a[0], b[0], sum_b[0], int_sum[0], int_carry[0]);
+    fulladder fa1(a[1], b[1], sum_b[1], int_sum[1], int_carry[1]);
+    fulladder fa2(a[2], b[2], sum_b[2], int_sum[2], int_carry[2]);
+
+
+assign sum_b = ~sum_in;
+assign cout_b = ~cout_in;
+assign error[0] = ~(int_sum[0]^cin);
+assign error[1] = ~(int_sum[1]^int_carry[0]);
+assign error[2] = ~(int_sum[2]^int_carry[1]);
+assign error[3] = ~(cout_b^int_carry[2]);
+
+assign sum_out[0] = (~(a[0]^b[0]) & (sum_in[0]^error[0])) | ((a[0]^b[0]) & ((~error[2] & error[1] & error[0])^sum_in[0]));
+assign sum_out[1] = (~(a[1]^b[1]) & (sum_in[1]^error[1])) | ((a[1]^b[1]) & ((error[2] & error[1] & ~error[0])^sum_in[1]));
+assign sum_out[2] = (error[2] & ~error[1] & ~error[0]) ^ sum_in[2];
+assign cout 	= (error[3] ^ cout_in);
+
+assign error_flag = (error[2] & error[0]) | (error[3]&(error[2]|error[1]|error[0]));
+
+endmodule
 
 module csa_dmr( ain,
 		bin,
