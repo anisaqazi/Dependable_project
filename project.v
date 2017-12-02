@@ -16,11 +16,29 @@ input A0,A1,A2,B0,B1,B2,PAR,C0,C1,C2;
 output X0,X1,X2,XC,XE0,XE1,Y0,Y1,Y2,YC,YE0,YE1;
 /* add your design here */
 wire [WIDTH-1:0] sum_outX;
+
 wire [WIDTH-1:0] sum_outX_check;
 wire XC_check;
-wire cin0X;
+wire [5:0]	two_railX_inA;
+wire [5:0]	two_railX_inB;
+wire errX;
+wire errX_b;
+
+
+wire [WIDTH-1:0] sum_outY_check;
+wire YC_check;
+wire [5:0]	two_railY_inA;
+wire [5:0]	two_railY_inB;
+wire errY;
+wire errY_b;
+
+wire 		cin0X;
 wire [WIDTH-1:0]ainX;
 wire [WIDTH-1:0]binX;
+
+wire cin0Y;
+wire [WIDTH-1:0]ainY;
+wire [WIDTH-1:0]binY;
 
 wire [WIDTH-1:0] sumY;
 wire [WIDTH-1:0] sumY1;
@@ -30,24 +48,20 @@ wire 		 YC_out;
 wire 		 YC0;
 wire 		 YC1;
 wire 		 YC2;
-wire YC_check;
-wire cin0Y;
 wire cin0Y_checker;
-wire [WIDTH-1:0]ainY;
-wire [WIDTH-1:0]binY;
 
 wire error_outY;
 wire err0_y;
 //wire err1_y;
 
-assign cin0X = C0 ? 1'b0 : 1'b1;
+assign cin0X = ~C0;
 assign ainX = {(C2^A2), (C2^A1), (C2^A0)};  
 assign binX = {(C1^B2), (C1^B1), (C1^B0)};  
 
-assign cin0Y = C0 ? 1'b0 : 1'b1;
+assign cin0Y = ~C0;
 assign ainY = {(C2^A2), (C2^A1), (C2^A0)};  
 assign binY = {(C1^B2), (C1^B1), (C1^B0)};  
-assign cin0Y_checker = C0 ? 1'b0 : 1'b1;
+assign cin0Y_checker = ~C0;
 
 // Logic for X path
 rca_tmr rca_tmrX(	.ain(ainX),
@@ -62,70 +76,109 @@ rca_tmr rca_tmrX(	.ain(ainX),
  		   		.sum	(sum_outX_check),
  		   		.cout	(XC_check)
  		   		);
+
+assign two_railX_inA[5] = C0;
+assign two_railX_inA[4] = PAR;
+assign two_railX_inA[3] = XC;
+assign two_railX_inA[2:0] = sum_outX;
  
+assign two_railX_inB[5] = (C1^C2) | (C2 & C0);
+assign two_railX_inB[4] = A0^A1^A2^B0^B1^B2;
+assign two_railX_inB[3] = ~XC_check;
+assign two_railX_inB[2:0] = ~sum_outX_check;
+ 
+two_rail_tree_6bit two_rail_checkX( .A(two_railX_inA),
+			 	   .B(two_railX_inB),
+			 	   .err(XE0),
+			 	   .err_b(XE1)
+			 	  );
 
 
 assign {X2,X1,X0} = sum_outX;
 
-assign XE0 = 1'b0;
-	
-assign XE1 = ~(A0^A1^A2^B0^B1^B2^PAR)     ? XE0 :       // Not odd parity
-	     ~( ~(C0&C1&C2) & (C0^C1^C2)) ? XE0 :       // Not one hot
-	     ({XC,sum_outX}!={XC_check,sum_outX_check})	  ? XE0 :	// error in TMR
-			 		   ~XE0 ;
-		
 //Logic for Y path			
-		
-//assign {Y2,Y1,Y0} = sum_outY;
-//assign YE0 = err0_y;
-//assign YE1 = ~(A0^A1^A2^B0^B1^B2^PAR)     ? YE0 :       // Not odd parity
-//	     ~( ~(C0&C1&C2) & (C0^C1^C2)) ? YE0 :       // Not one hot
-//			 		   err1_y ;
-		
-rca rcaY0(	.a	(ainY),
-    		.b	(binY),
-    		.cin	(cin0Y),
-    		.sum	(sum_outY),
-    		.cout	(YC_out)
-    		);
-	
-residue_check checkY(	.a	(ainY),
-			.b	(binY),
-			.cin	(cin0Y_checker),
-			.sum_in	(sum_outY),
-			.cout_in(YC_out),
-			.sum_out(sumY),
-			.cout	(YC0),
-			.error_flag(err0_y)	//can dual rail be done?
-			);
+rca_tmr rca_tmrY(	.ain(ainY),
+			.bin(binY),
+			.cin0(cin0Y),
+			.sum(sum_outY),
+			.cout(YC));
 
-rca rcaY1(	.a	(ainY),
-    		.b	(binY),
-    		.cin	(cin0Y),
-    		.sum	(sumY1),
-    		.cout	(YC1)
-    		);
-	
-rca rcaY2(	.a	(ainY),
-    		.b	(binY),
-    		.cin	(cin0Y),
-    		.sum	(sumY2),
-    		.cout	(YC2)
-    		);
-	
-assign {Y2,Y1,Y0} = ({err0_y,YC0,sum_outY} == {1'b0,YC1,sumY1}) ? sum_outY :
- 					  ({YC1,sumY1} == {YC2,sumY2}) ? sumY1 : sumY2;
-assign {error_outY,YC} = ({err0_y,YC0,sum_outY} == {1'b0,YC1,sumY1}) ? {1'b0,YC0} :
- 					  ({YC1,sumY1} == {YC2,sumY2}) ? {1'b0,YC1} : 
- 					  ({YC2,sumY2} == {err0_y,YC0,sum_outY}) ? {1'b0,YC2} : {1'b1,YC2};
+ rca ripple_carry_check_adderY(	.a	(ainY),
+ 		   		.b	(binY),
+ 		   		.cin	(cin0Y),
+ 		   		.sum	(sum_outY_check),
+ 		   		.cout	(YC_check)
+ 		   		);
 
-//assign {Y2,Y1,Y0} = sumY;
-assign YE0 = 1'b1;
-assign YE1 = ~(A0^A1^A2^B0^B1^B2^PAR)     ? YE0 :       // Not odd parity
-	     ~( ~(C0&C1&C2) & (C0^C1^C2)) ? YE0 :       // Not one hot
-	     error_outY			  ? YE0 :
-					   ~YE0 ;
+assign two_railY_inA[5] = C0;
+assign two_railY_inA[4] = PAR;
+assign two_railY_inA[3] = YC;
+assign two_railY_inA[2:0] = sum_outY;
+ 
+assign two_railY_inB[5] = (C1^C2) | (C2 & C0);
+assign two_railY_inB[4] = A0^A1^A2^B0^B1^B2;
+assign two_railY_inB[3] = ~YC_check;
+assign two_railY_inB[2:0] = ~sum_outY_check;
+ 
+two_rail_tree_6bit two_rail_checkY( .A(two_railY_inA),
+			 	   .B(two_railY_inB),
+			 	   .err(YE0),
+			 	   .err_b(YE1)
+			 	  );
 
+
+assign {Y2,Y1,Y0} = sum_outY;
+	
+//ani //assign {Y2,Y1,Y0} = sum_outY;
+//ani //assign YE0 = err0_y;
+//ani //assign YE1 = ~(A0^A1^A2^B0^B1^B2^PAR)     ? YE0 :       // Not odd parity
+//ani //	     ~( ~(C0&C1&C2) & (C0^C1^C2)) ? YE0 :       // Not one hot
+//ani //			 		   err1_y ;
+//ani 		
+//ani rca rcaY0(	.a	(ainY),
+//ani     		.b	(binY),
+//ani     		.cin	(cin0Y),
+//ani     		.sum	(sum_outY),
+//ani     		.cout	(YC_out)
+//ani     		);
+//ani 	
+//ani residue_check checkY(	.a	(ainY),
+//ani 			.b	(binY),
+//ani 			.cin	(cin0Y_checker),
+//ani 			.sum_in	(sum_outY),
+//ani 			.cout_in(YC_out),
+//ani 			.sum_out(sumY),
+//ani 			.cout	(YC0),
+//ani 			.error_flag(err0_y)	//can dual rail be done?
+//ani 			);
+//ani 
+//ani rca rcaY1(	.a	(ainY),
+//ani     		.b	(binY),
+//ani     		.cin	(cin0Y),
+//ani     		.sum	(sumY1),
+//ani     		.cout	(YC1)
+//ani     		);
+//ani 	
+//ani rca rcaY2(	.a	(ainY),
+//ani     		.b	(binY),
+//ani     		.cin	(cin0Y),
+//ani     		.sum	(sumY2),
+//ani     		.cout	(YC2)
+//ani     		);
+//ani 	
+//ani assign {Y2,Y1,Y0} = ({err0_y,YC0,sum_outY} == {1'b0,YC1,sumY1}) ? sum_outY :
+//ani  					  ({YC1,sumY1} == {YC2,sumY2}) ? sumY1 : sumY2;
+//ani assign {error_outY,YC} = ({err0_y,YC0,sum_outY} == {1'b0,YC1,sumY1}) ? {1'b0,YC0} :
+//ani  					  ({YC1,sumY1} == {YC2,sumY2}) ? {1'b0,YC1} : 
+//ani  					  ({YC2,sumY2} == {err0_y,YC0,sum_outY}) ? {1'b0,YC2} : {1'b1,YC2};
+//ani 
+//ani //assign {Y2,Y1,Y0} = sumY;
+//ani assign YE0 = 1'b1;
+//ani assign YE1 = ~(A0^A1^A2^B0^B1^B2^PAR)     ? YE0 :       // Not odd parity
+//ani 	     ~( ~(C0&C1&C2) & (C0^C1^C2)) ? YE0 :       // Not one hot
+//ani 	     error_outY			  ? YE0 :
+//ani 					   ~YE0 ;
+//ani 
 
 //assign X0 = 0;
 //assign X1 = 0;
@@ -328,6 +381,69 @@ two_rail_check rail1(	.x	(z),
 
 assign cout = cin ? cout1 : cout0;
 assign sum  = cin ? sum1  : sum0;
+
+endmodule
+
+module two_rail_tree_6bit(A,
+			  B,
+			  err,
+			  err_b
+			 );
+input	[5:0]	A;
+input	[5:0]	B;
+output		err;
+output		err_b;
+
+
+wire	err01;
+wire	err01_b;
+wire	err23;
+wire	err23_b;
+wire	err45;
+wire	err45_b;
+wire	err02;
+wire	err02_b;
+
+two_rail_check rail01(	.x	(A[0]),
+		      	.x_b	(B[0]),
+		      	.y	(A[1]),
+		      	.y_b	(B[1]),
+		      	.z	(err01),
+		      	.z_b	(err01_b)
+);
+
+two_rail_check rail23(	.x	(A[2]),
+		      	.x_b	(B[2]),
+		      	.y	(A[3]),
+		      	.y_b	(B[3]),
+		      	.z	(err23),
+		      	.z_b	(err23_b)
+);
+
+two_rail_check rail45(	.x	(A[4]),
+		      	.x_b	(B[4]),
+		      	.y	(A[5]),
+		      	.y_b	(B[5]),
+		      	.z	(err45),
+		      	.z_b	(err45_b)
+);
+
+two_rail_check rail02(.x	(err01),
+		      	.x_b	(err01_b),
+		      	.y	(err23),
+		      	.y_b	(err23_b),
+		      	.z	(err02),
+		      	.z_b	(err02_b)
+);
+
+two_rail_check rail_out(.x	(err02),
+		      	.x_b	(err02_b),
+		      	.y	(err45),
+		      	.y_b	(err45_b),
+		      	.z	(err),
+		      	.z_b	(err_b)
+);
+
 
 endmodule
 
