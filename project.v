@@ -17,20 +17,41 @@ output X0,X1,X2,XC,XE0,XE1,Y0,Y1,Y2,YC,YE0,YE1;
 /* add your design here */
 wire [WIDTH-1:0] sum_outX;
 wire [WIDTH-1:0] sum_outX_check;
+wire [WIDTH-1:0] sum_outY;
+wire [WIDTH-1:0] sum_outY_check;
 wire XC_check;
+wire YC_check;
 
 wire [5:0]	two_railX_inA;
 wire [5:0]	two_railX_inB;
+wire [5:0]	two_railY_inA;
+wire [5:0]	two_railY_inB;
 wire errX;
 wire errX_b;
 
-wire 		cin0X;
-wire [WIDTH-1:0]ainX;
-wire [WIDTH-1:0]binX;
+wire 		cinA0X;
+wire [WIDTH-1:0]ainAX;
+wire [WIDTH-1:0]binAX;
 
-wire cin0Y;
-wire [WIDTH-1:0]ainY;
-wire [WIDTH-1:0]binY;
+wire 		cinB0X;
+wire [WIDTH-1:0]ainBX;
+wire [WIDTH-1:0]binBX;
+
+wire 		cinC0X;
+wire [WIDTH-1:0]ainCX;
+wire [WIDTH-1:0]binCX;
+
+wire cinA0Y;
+wire [WIDTH-1:0]ainAY;
+wire [WIDTH-1:0]binAY;
+
+wire cinB0Y;
+wire [WIDTH-1:0]ainBY;
+wire [WIDTH-1:0]binBY;
+
+wire cinC0Y;
+wire [WIDTH-1:0]ainCY;
+wire [WIDTH-1:0]binCY;
 
 wire [WIDTH-1:0] sumY;
 wire [WIDTH-1:0] sumY1;
@@ -47,25 +68,48 @@ wire error_outY;
 wire err0_y;
 //wire err1_y;
 
-assign cin0X = ~C0;
-assign ainX = {(C2^A2), (C2^A1), (C2^A0)};  
-assign binX = {(C1^B2), (C1^B1), (C1^B0)};  
+assign cinA0X = ~C0;
+assign ainAX = {(C2^A2), (C2^A1), (C2^A0)};  
+assign binAX = {(C1^B2), (C1^B1), (C1^B0)};  
 
-assign cin0Y = ~C0;
-assign ainY = {(C2^A2), (C2^A1), (C2^A0)};  
-assign binY = {(C1^B2), (C1^B1), (C1^B0)};  
+assign cinB0X = ~C0;
+assign ainBX = {(C2^A2), (C2^A1), (C2^A0)};  
+assign binBX = {(C1^B2), (C1^B1), (C1^B0)};  
+
+assign cinC0X = ~C0;
+assign ainCX = {(C2^A2), (C2^A1), (C2^A0)};  
+assign binCX = {(C1^B2), (C1^B1), (C1^B0)};  
+
+assign cinA0Y = ~C0;
+assign ainAY = {(C2^A2), (C2^A1), (C2^A0)};  
+assign binAY = {(C1^B2), (C1^B1), (C1^B0)};  
+
+assign cinB0Y = ~C0;
+assign ainBY = {(C2^A2), (C2^A1), (C2^A0)};  
+assign binBY = {(C1^B2), (C1^B1), (C1^B0)};  
+
+assign cinC0Y = ~C0;
+assign ainCY = {(C2^A2), (C2^A1), (C2^A0)};  
+assign binCY = {(C1^B2), (C1^B1), (C1^B0)};  
+
 assign cin0Y_checker = ~C0;
 
 // Logic for X path
-rca_tmr rca_tmrX(	.ain(ainX),
-			.bin(binX),
-			.cin0(cin0X),
+rca_tmr rca_tmrX(	.ainA(ainAX),
+			.binA(binAX),
+			.cinA0(cinA0X),
+			.ainB(ainBX),
+			.binB(binBX),
+			.cinB0(cinB0X),
+			.ainC(ainCX),
+			.binC(binCX),
+			.cinC0(cinC0X),
 			.sum(sum_outX),
 			.cout(XC));
 
- rca ripple_carry_check_adderX(	.a	(ainX),
- 		   		.b	(binX),
- 		   		.cin	(cin0X),
+ rca ripple_carry_check_adderX(	.a	(ainAX),
+ 		   		.b	(binAX),
+ 		   		.cin	(cinA0X),
  		   		.sum	(sum_outX_check),
  		   		.cout	(XC_check)
  		   		);
@@ -80,7 +124,7 @@ assign two_railX_inB[4] = A0^A1^A2^B0^B1^B2;
 assign two_railX_inB[3] = ~XC_check;
 assign two_railX_inB[2:0] = ~sum_outX_check;
  
-two_rail_tree_6bit two_rail_check( .A(two_railX_inA),
+two_rail_tree_6bit two_rail_checkX( .A(two_railX_inA),
 			 	   .B(two_railX_inB),
 			 	   .err(XE0),
 			 	   .err_b(XE1)
@@ -97,49 +141,46 @@ assign {X2,X1,X0} = sum_outX;
 //	     ~( ~(C0&C1&C2) & (C0^C1^C2)) ? YE0 :       // Not one hot
 //			 		   err1_y ;
 		
-rca rcaY0(	.a	(ainY),
-    		.b	(binY),
-    		.cin	(cin0Y),
-    		.sum	(sum_outY),
-    		.cout	(YC_out)
-    		);
-	
-residue_check checkY(	.a	(ainY),
-			.b	(binY),
-			.cin	(cin0Y_checker),
-			.sum_in	(sum_outY),
-			.cout_in(YC_out),
-			.sum_out(sumY),
-			.cout	(YC0),
-			.error_flag(err0_y)	//can dual rail be done?
-			);
 
-rca rcaY1(	.a	(ainY),
-    		.b	(binY),
-    		.cin	(cin0Y),
-    		.sum	(sumY1),
-    		.cout	(YC1)
-    		);
-	
-rca rcaY2(	.a	(ainY),
-    		.b	(binY),
-    		.cin	(cin0Y),
-    		.sum	(sumY2),
-    		.cout	(YC2)
-    		);
-	
-assign {Y2,Y1,Y0} = ({err0_y,YC0,sum_outY} == {1'b0,YC1,sumY1}) ? sum_outY :
- 					  ({YC1,sumY1} == {YC2,sumY2}) ? sumY1 : sumY2;
-assign {error_outY,YC} = ({err0_y,YC0,sum_outY} == {1'b0,YC1,sumY1}) ? {1'b0,YC0} :
- 					  ({YC1,sumY1} == {YC2,sumY2}) ? {1'b0,YC1} : 
- 					  ({1'b0,YC2,sumY2} == {err0_y,YC0,sum_outY}) ? {1'b0,YC2} : {1'b1,YC2};
+rca_tmr rca_tmrY(	.ainA(ainAY),
+			.binA(binAY),
+			.cinA0(cinA0Y),
+			.ainB(ainBY),
+			.binB(binBY),
+			.cinB0(cinB0Y),
+			.ainC(ainCY),
+			.binC(binCY),
+			.cinC0(cinC0Y),
+			.sum(sum_outY),
+			.cout(YC));
 
-//assign {Y2,Y1,Y0} = sumY;
-assign YE0 = 1'b1;
-assign YE1 = ~(A0^A1^A2^B0^B1^B2^PAR)     ? YE0 :       // Not odd parity
-	     ~( ~(C0&C1&C2) & (C0^C1^C2)) ? YE0 :       // Not one hot
-	     error_outY			  ? YE0 :
-					   ~YE0 ;
+ rca ripple_carry_check_adderY(	.a	(ainAY),
+ 		   		.b	(binAY),
+ 		   		.cin	(cinA0Y),
+ 		   		.sum	(sum_outY_check),
+ 		   		.cout	(YC_check)
+ 		   		);
+
+assign two_railY_inA[5] = C0;
+assign two_railY_inA[4] = PAR;
+assign two_railY_inA[3] = YC;
+assign two_railY_inA[2:0] = sum_outY;
+ 
+assign two_railY_inB[5] = (C1^C2) | (C2 & C0);
+assign two_railY_inB[4] = A0^A1^A2^B0^B1^B2;
+assign two_railY_inB[3] = ~YC_check;
+assign two_railY_inB[2:0] = ~sum_outY_check;
+ 
+two_rail_tree_6bit two_rail_checkY( .A(two_railY_inA),
+			 	   .B(two_railY_inB),
+			 	   .err(YE0),
+			 	   .err_b(YE1)
+			 	  );
+
+
+assign {Y2,Y1,Y0} = sum_outY;
+
+
 
 
 //assign X0 = 0;
@@ -431,16 +472,28 @@ assign z_b = (x_b & y)   | (x & y_b);
 endmodule
 
 
-module rca_tmr(	ain,
-		bin,
-		cin0,
+module rca_tmr(	ainA,
+		binA,
+		cinA0,
+	      	ainB,
+		binB,
+		cinB0,
+	      	ainC,
+		binC,
+		cinC0,
 		sum,
 		cout);
 
 parameter WIDTH = 3;
-input [2:0] ain;
-input [2:0] bin;
-input cin0;
+input [2:0] ainA;
+input [2:0] binA;
+input cinA0;
+input [2:0] ainB;
+input [2:0] binB;
+input cinB0;
+input [2:0] ainC;
+input [2:0] binC;
+input cinC0;
 output [2:0] sum;
 output cout;
 
@@ -452,24 +505,24 @@ wire XC_rca1;
 wire XC_rca2;
 
 
- rca ripple_carry0(.a	(ain),
- 		   .b	(bin),
- 		   .cin	(cin0),
+ rca ripple_carry0(.a	(ainA),
+ 		   .b	(binA),
+ 		   .cin	(cinA0),
  		   .sum	(X_rca0),
  		   .cout(XC_rca0)
  		   );
  
  
- rca ripple_carry1(.a	(ain),
- 		   .b	(bin),
- 		  .cin	(cin0),
+ rca ripple_carry1(.a	(ainB),
+ 		   .b	(binB),
+ 		  .cin	(cinB0),
  		  .sum	(X_rca1),
  		  .cout	(XC_rca1)
  		  );
  
- rca ripple_carry2(.a	(ain),
-     		   .b	(bin),
- 		   .cin	(cin0),
+ rca ripple_carry2(.a	(ainC),
+     		   .b	(binC),
+ 		   .cin	(cinC0),
  		   .sum	(X_rca2),
  		   .cout(XC_rca2)
  		   );
