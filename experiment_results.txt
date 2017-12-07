@@ -1,0 +1,181 @@
+Seed: 20
+
+1. Normal RCA with basic full adder
+
+   Total Area              = 277.50
+   Gate Count              = 107
+   Average Fault Tolerance = 1.140000
+
+2. Normal RCA with fault correcting full adder (only on sum path: carry path is actually reducing the score)
+
+   Total Area              = 408.00
+   Gate Count              = 158
+   Average Fault Tolerance = 1.960000
+
+3. Normal RCA with fault correcting full adder (both sum and carry(based on paper) paths)
+
+   Total Area              = 561.00
+   Gate Count              = 218
+   Average Fault Tolerance = 1.120000
+
+4. Normal RCA with fault correcting full adder (both sum and carry(just duplicate carry generation and check) paths)
+
+   Total Area              = 520.50
+   Gate Count              = 200
+   Average Fault Tolerance = 1.060000
+ 
+5. TMR with basic full adder
+
+   Total Area              = 777.00
+   Gate Count              = 290
+   Average Fault Tolerance = 2.570000
+
+6. TMR with basic full adder + Parity checker
+
+   Has timing issues due to the parity check path. Cannot be done.
+
+
+7. TMR with basic full adder + extra RCA for output check.
+
+   Total Area         = 934.50
+   Gate Count         = 346
+   Average Fault Tolerance = 6.250000
+
+
+8. TMR on X + RCA on Y. Both with DMR.
+
+   Total Area         = 1357.50
+   Gate Count              = 500
+   Average Fault Tolerance = 6.090000
+
+
+9. TMR for both X & Y paths. With DMR for checking.
+
+   Total Area              = 1846.50
+   Gate Count              = 676
+   Average Fault Tolerance = 7.900000
+
+10. TMR for both X & Y paths. With DMR for checking. X path using 3:2 compressor
+  
+   Total Area         = 1758.00
+   Gate Count              = 665
+   Average Fault Tolerance = 6.900000
+
+11. TMR for both X & Y paths. With DMR for checking. Both paths using 3:2 compressor
+  
+   Total Area         = 1758.00
+   Gate Count              = 665
+   Average Fault Tolerance = 6.900000
+
+12. TMR + DMR on X and CSA with 2 rail check on the other.
+
+   Total Area         = 1371.00
+   Gate Count              = 505
+   Buffer Count            = 0
+   Inverter Count          = 94
+   Most Negative Slack     = -80.90
+   Sum of Negative Slacks  = -603.50
+   Number of Critical PO   = 11
+   
+   Num Unsafe Fails = 16
+   Maximum Faults Tolerated = 34
+   Minimum Faults Tolerated = 1
+   X Failed First = 0
+   Y Failed First = 100
+   
+   Average Fault Tolerance = 6.490000
+
+13. RCA with basic full adder + long residue checker (on Y; X always fail safe)
+
+   Total Area              = 591.00
+   Gate Count              = 222
+   Buffer Count            = 0
+   Inverter Count          = 46
+   Most Negative Slack     = -73.40
+   Sum of Negative Slacks  = -336.20
+   Number of Critical PO   = 5 
+
+   Average Fault Tolerance = 1.440000
+
+14. TRM+DMR on X path and RCA+long residue check on Y path
+   Total Area         = 1515.00
+   Gate Count              = 560
+   Buffer Count            = 0
+   Inverter Count          = 106
+   Most Negative Slack     = -80.90
+   Sum of Negative Slacks  = -698.20
+   Number of Critical PO   = 10
+
+   Num Unsafe Fails = 82
+   Maximum Faults Tolerated = 19
+   Minimum Faults Tolerated = 4
+   X Failed First = 39
+   Y Failed First = 12
+
+   Average Fault Tolerance = 1.170000
+
+14. TRM+DMR on X path and RCA+long residue check along with TMR with 2 RCA on Y path
+
+   Total Area         = 1938.00
+   Gate Count              = 712
+   Buffer Count            = 0
+   Inverter Count          = 128
+   Most Negative Slack     = -91.50
+   Sum of Negative Slacks  = -773.70
+   Number of Critical PO   = 10
+
+   Num Unsafe Fails = 61
+   Maximum Faults Tolerated = 53
+   Minimum Faults Tolerated = 3
+   X Failed First = 53
+   Y Failed First = 19
+   
+   TOTAL Score = 508
+   
+   Average Fault Tolerance = 5.080000
+
+15. TMR + DMR on both XY but 2 rail check 
+
+   Total Area         = 1884.00
+   Gate Count              = 688
+   Buffer Count            = 0
+   Inverter Count          = 120
+   Most Negative Slack     = -85.90
+   Sum of Negative Slacks  = -879.40
+   Number of Critical PO   = 12
+   
+   num nodes = 568
+   num lits = 1136
+
+   Num Unsafe Fails = 27
+   Maximum Faults Tolerated = 27
+   Minimum Faults Tolerated = 2
+   X Failed First = 42
+   Y Failed First = 40
+   
+   TOTAL Score = 758
+   
+   Average Fault Tolerance = 7.580000
+
+16. TMR+DMR with 2rail check on X; TMR of 2rca+rca with long residue on Y
+
+   Total Area         = 1956.00
+   Gate Count              = 717
+   Buffer Count            = 0
+   Inverter Count          = 128
+   Most Negative Slack     = -91.50
+   Sum of Negative Slacks  = -860.90
+   Number of Critical PO   = 11
+   
+   Num Unsafe Fails = 56
+   Maximum Faults Tolerated = 25
+   Minimum Faults Tolerated = 2
+   X Failed First = 52
+   Y Failed First = 19
+   
+   TOTAL Score = 520
+   
+   Average Fault Tolerance = 5.200000
+	
+
+
