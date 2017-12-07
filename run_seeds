@@ -1,0 +1,17 @@
+rm -f out.csv
+echo Area, Seed, Unsafe fails, Max Tolerated, Min Tolerated, X fail first, Y fail first, Avg tolerance >>out.csv
+for seed in {1..2}
+do
+    sed -i "/fault_tolerance/!b;n;c$seed" bat3_loc
+    source bat_loc | grep -E "Num Unsafe|Maximum|Minimum|X Failed|Y Fa|Y Failed|Average Fau|seed|Total Area" >>out.csv
+done
+sed -i 's:sis.*>::g' out.csv
+sed -i '/Average Fault/! s/$/,/' out.csv
+sed -i 's/^ Total.*= //g' out.csv
+sed -i 's/^random.*= //g' out.csv
+sed -i 's/^Num Unsafe.*= //g' out.csv
+sed -i 's/^Maximum Faults.*= //g' out.csv
+sed -i 's/^Minimum Faults.*= //g' out.csv
+sed -i 's/^X Failed.*= //g' out.csv
+sed -i 's/^Y Failed.*= //g' out.csv
+sed -i 's/^Average Fault.*= //g' out.csv
